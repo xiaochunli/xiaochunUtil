@@ -1,11 +1,14 @@
 package org.xiaochun.common.util.file;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 
 import org.apache.logging.log4j.LogManager;
@@ -47,9 +50,9 @@ public class FileReplace {
 	}
 	
 	private void doReplacePath(File pathFile){
-		logger.info("开始替换 [" + pathFile.getAbsolutePath() + "]");
+		System.out.println("开始替换 [" + pathFile.getAbsolutePath() + "]");
 		if(! pathFile.exists()){
-			logger.info("文件不存在 [" + pathFile.getAbsolutePath() + "]");
+			System.out.println("文件不存在 [" + pathFile.getAbsolutePath() + "]");
 			return;
 		}
 		if(pathFile.isFile()){
@@ -62,7 +65,7 @@ public class FileReplace {
 				}
 			}
 		}
-		logger.info("替换结束 [" + pathFile.getAbsolutePath() + "]");
+		System.out.println("替换结束 [" + pathFile.getAbsolutePath() + "]");
 	}
 	
 	public void doReplace(){
@@ -74,40 +77,37 @@ public class FileReplace {
 			return;
 		}
 		InputStream inps = null;
-		Writer writer = null;
+		OutputStream ops = null;
 		try {
 			inps = new FileInputStream(file);
 			StringBuilder sb = new StringBuilder();
-			byte[] b = new byte[2048];
-			String s = null;
-			while(inps.read(b) != -1){
-				s = new String(b).replace(this.oldWords, this.newWords);
-				sb.append(s);
-				s = null;
+			int i;
+			while((i = inps.read()) != -1){
+				sb.append((char)i);
 			}
-			
+			close(inps);
 			//write back
-			writer = new FileWriter(file, false);
-			writer.write(sb.toString());
-			writer.flush();
+			ops = new FileOutputStream(file);
+			String s = sb.toString().replaceAll(this.oldWords, this.newWords);
+			System.out.println(s);
+			ops.write(s.getBytes());
+			ops.flush();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}finally {
-			if(writer != null){
-				try {
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			if(inps != null){
-				try {
-					inps.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+			close(ops);
+			close(inps);
+		}
+	}
+	
+	private void close(Closeable close){
+		if(close != null){
+			try {
+				close.close();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}
